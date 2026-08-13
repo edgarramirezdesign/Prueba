@@ -1,0 +1,54 @@
+name: Assign QA Build Number
+
+on:
+  push:
+    branches:
+      - 'release/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qa-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  assign-build:
+    runs-on: ubuntu-latest
+
+    # Solo procesar commits relacionados con un proyecto DSS
+    if: contains(github.event.head_commit.message, 'DSS-')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate next build number
+        id: build
+        shell: bash
+        run: |
+          CURRENT=$(cat QA_BUILD)
+          NEXT=$((CURRENT + 1))
+
+          echo "$NEXT" > QA_BUILD
+
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+
+          echo "Current QA build: $CURRENT"
+          echo "Next QA build: $NEXT"
+
+      - name: Commit QA build number
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add QA_BUILD
+
+          git commit \
+            -m "[QA-BUILD] ${{ steps.build.outputs.next }}"
+
+          git push
