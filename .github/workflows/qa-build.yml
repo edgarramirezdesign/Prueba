@@ -16,14 +16,26 @@ jobs:
   assign-build:
     runs-on: ubuntu-latest
 
-    # Solo procesar commits relacionados con un proyecto DSS
-    if: contains(github.event.head_commit.message, 'DSS-')
+    if: startsWith(github.event.head_commit.message, 'Merge branch ''feature/DSS-')
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Validate QA_BUILD
+        shell: bash
+        run: |
+          if [ ! -f QA_BUILD ]; then
+            echo "ERROR: No existe el archivo QA_BUILD"
+            exit 1
+          fi
+
+          if ! [[ "$(cat QA_BUILD)" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: QA_BUILD no contiene un número válido"
+            exit 1
+          fi
 
       - name: Calculate next build number
         id: build
@@ -48,7 +60,6 @@ jobs:
 
           git add QA_BUILD
 
-          git commit \
-            -m "[QA-BUILD] ${{ steps.build.outputs.next }}"
+          git commit -m "[QA-BUILD] ${{ steps.build.outputs.next }}"
 
           git push
