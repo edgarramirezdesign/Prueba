@@ -62,4 +62,7 @@ jobs:
 
           git commit -m "[QA-BUILD] ${{ steps.build.outputs.next }}"
 
-          git push
+          git tag "${{ steps.build.outputs.next }}"
+
+          git push origin HEAD:${{ github.ref_name }}
+          git push origin "${{ steps.build.outputs.next }}"
